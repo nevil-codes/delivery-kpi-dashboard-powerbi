@@ -1,0 +1,65 @@
+// Delivery earnings dashboard - all measures
+// Tables: Sessions, Shifts, Calendar
+// Paste into DAX query view to run
+
+DEFINE
+
+    // basics
+    MEASURE 'Sessions'[Total Orders] = SUM(Sessions[Orders])
+    MEASURE 'Sessions'[Active Hours] = SUM(Sessions[Hours])        // time online in the app
+    MEASURE 'Sessions'[Total Paid Hours] = SUM(Shifts[Paid hours]) // hours on the shift plan
+
+    // TPH = orders per hour, this is what the bonus is based on
+    MEASURE 'Sessions'[TPH] = DIVIDE([Total Orders], [Active Hours])
+    MEASURE 'Sessions'[TPH Target] = 2.4
+    MEASURE 'Sessions'[Utilization] = DIVIDE([Active Hours], [Total Paid Hours])
+
+    // pay
+    MEASURE 'Sessions'[Base Pay] = [Total Paid Hours] * 14
+    MEASURE 'Sessions'[Phone Pay] = [Total Paid Hours] * 0.10
+    MEASURE 'Sessions'[Vehicle Pay] = SUM(Sessions[Km]) * 0.15
+    MEASURE 'Sessions'[Bag Pay] = SUM(Sessions[Bag €])
+    MEASURE 'Sessions'[Tips] = SUM(Sessions[Tips €])
+
+    // bonus tiers (€ per paid hour), starts at 2.4 TPH
+    MEASURE 'Sessions'[Bonus Rate] = VAR t = [TPH]
+RETURN SWITCH(TRUE(),
+    t >= 4.6, 9.6,  t >= 4.5, 9.1,  t >= 4.4, 8.6,  t >= 4.3, 8.1,
+    t >= 4.2, 7.6,  t >= 4.1, 7.1,  t >= 4.0, 6.6,  t >= 3.9, 6.1,
+    t >= 3.8, 5.6,  t >= 3.7, 5.1,  t >= 3.6, 4.6,  t >= 3.5, 4.1,
+    t >= 3.4, 3.6,  t >= 3.3, 3.1,  t >= 3.2, 2.6,  t >= 3.1, 2.1,
+    t >= 3.0, 1.7,  t >= 2.9, 1.3,  t >= 2.8, 1.0,  t >= 2.7, 0.7,
+    t >= 2.6, 0.5,  t >= 2.5, 0.3,  t >= 2.4, 0.2,
+    0
+)
+
+    // bonus is calculated per month, so loop over months
+    // otherwise the total would use the overall TPH
+    MEASURE 'Sessions'[Bonus Pay] = SUMX(VALUES(Calendar[MonthName]), [Bonus Rate] * [Total Paid Hours])
+
+    // deductions
+    MEASURE 'Sessions'[Pension] = ([Base Pay] + [Bonus Pay]) * 0.093
+    MEASURE 'Sessions'[Health] = 87 * COUNTROWS(FILTER(VALUES(Calendar[MonthName]), [Total Paid Hours] > 0)) // 87/month, only months I worked
+
+    // totals
+    MEASURE 'Sessions'[Gross] = [Base Pay] + [Bonus Pay] + [Vehicle Pay] + [Phone Pay] + [Bag Pay] + [Tips]
+    MEASURE 'Sessions'[Net Earnings] = [Gross] - [Pension] - [Health]
+    MEASURE 'Sessions'[Net per Hour] = DIVIDE([Net Earnings], [Total Paid Hours])
+
+    // TODO: move rates to Settings table instead of hardcoding
+
+EVALUATE
+    SUMMARIZECOLUMNS(
+        "Total Orders", [Total Orders],
+        "Active Hours", [Active Hours],
+        "Total Paid Hours", [Total Paid Hours],
+        "TPH", [TPH],
+        "Utilization", [Utilization],
+        "Bonus Rate", [Bonus Rate],
+        "Bonus Pay", [Bonus Pay],
+        "Gross", [Gross],
+        "Pension", [Pension],
+        "Health", [Health],
+        "Net Earnings", [Net Earnings],
+        "Net per Hour", [Net per Hour]
+    )
