@@ -2,7 +2,7 @@
 
 An end-to-end Power BI project built on my own work data as a part-time delivery rider. I tracked every shift and delivery in Excel (orders, hours, kilometres and tips) and turned it into a KPI dashboard. The goal was to answer one question: **how close am I to the performance bonus, and what drives it?**
 
-![Dashboard overview](dashboard.jpeg)
+![Dashboard overview](dashboard.jpg)
 
 ---
 
