@@ -34,23 +34,24 @@ My employer pays a performance bonus once a rider averages more than **2.4 order
 - Added derived columns such as month, paid hours and a worked/not-worked flag
 
 ### 2. Data model
-- Star schema with a dedicated **Date table** linked to two fact tables (shifts and delivery sessions)
-- Supporting tables for settings (rates, deduction percentages) and bonus tiers
+- Star schema with a dedicated **Calendar** (date) table linked to two fact tables: **Shifts** (scheduled, paid hours) and **Sessions** (active delivery time, orders, km, tips)
+- Supporting tables for settings and bonus tiers
 - Relationships set up so every measure can be sliced by day, weekday and month
 
 ### 3. DAX measures (18 in total)
-Examples:
-- **Orders per Hour**: the core KPI, compared against the 2.4 target
-- **Bonus Tier**: tiered bonus calculation using `SWITCH(TRUE(), …)`
-- **Gross Pay** and **Net Pay** after pension and health insurance contributions
-- **Net Pay per Hour**
-- **Utilization**: paid hours vs. hours assigned
-- **Gap to Target**: how many orders per hour are missing to reach the bonus
 
-All measures are in [`measures.dax`](measures.dax).
+| Group | Measures |
+|---|---|
+| **Volume** | Total Orders, Active Hours, Total Paid Hours |
+| **Performance** | **TPH** (orders per active hour), TPH Target (2.4), Utilization (active ÷ paid hours) |
+| **Pay components** | Base Pay, Phone Pay, Vehicle Pay (per km), Bag Pay, Tips |
+| **Bonus** | **Bonus Rate**: 23-tier lookup with `SWITCH(TRUE(), …)` from 2.4 to 4.6 TPH<br>**Bonus Pay**: rate × paid hours, calculated per month with `SUMX` so multi-month totals are correct |
+| **Earnings** | Gross, Pension (9.3% of wage-based pay), Health (flat monthly amount, only for months worked), Net Earnings, Net per Hour |
+
+All measures, with comments, are in [`measures.dax`](measures.dax). The file can be run directly in Power BI's DAX query view.
 
 ### 4. Dashboard
-- **KPI visual**: orders per hour vs. bonus target
+- **KPI visual**: TPH (orders per hour) vs. bonus target
 - **Cards**: net earnings and net pay per hour
 - **Monthly pay breakdown**: gross, deductions, net, tips
 - **Weekday analysis**: orders per hour by day of the week
